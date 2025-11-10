@@ -10,7 +10,7 @@ The BLE exploration suite helps you:
 1. **Discover** services and characteristics
 2. **Test** command patterns to understand protocol
 3. **Monitor** notifications during physical operations
-4. **Analyze** logs with LLM assistance (Claude)
+4. **Analyze** logs 
 5. **Validate** implementation with hardware tests
 
 ---
