@@ -74,6 +74,9 @@ EXPOSE 80
 # Set version as environment variable for application use
 ENV ADDON_VERSION=${BUILD_VERSION}
 
+# Enable s6-overlay debug logging
+ENV S6_VERBOSITY=3
+
 # Set container metadata
 LABEL \
     io.hass.name="SFPLiberate" \
@@ -91,6 +94,3 @@ LABEL \
     org.opencontainers.image.source="https://github.com/josiah-nelson/SFPLiberate" \
     org.opencontainers.image.documentation="https://github.com/josiah-nelson/SFPLiberate/blob/main/docs/HOME_ASSISTANT.md" \
     org.opencontainers.image.version=${BUILD_VERSION}
-
-# Start via s6-overlay init system (provided by Home Assistant base image)
-CMD []
