@@ -1,0 +1,50 @@
+---
+configuration:
+  log_level:
+    name: Log level
+    description: Controls the verbosity of add-on logs. Use 'debug' for troubleshooting.
+  auto_discover:
+    name: Auto-discover devices
+    description: Enable automatic discovery of SFP Wizard devices via Home Assistant's Bluetooth integration.
+  device_name_patterns:
+    name: Device name patterns
+    description: List of patterns to match against Bluetooth device names for auto-discovery. Matching is case-insensitive.
+  connection_timeout:
+    name: Connection timeout
+    description: Timeout in seconds for Bluetooth connection attempts. Increase if you experience connection failures.
+  device_expiry_seconds:
+    name: Device expiry time
+    description: How long (in seconds) to keep devices in the discovered list after their last advertisement. Devices that haven't been seen within this window are removed from the UI.
+  scan_interval:
+    name: Scan interval
+    description: How often (in seconds) to poll Home Assistant's Bluetooth API for device updates.
+  rssi_threshold:
+    name: RSSI threshold
+    description: Minimum signal strength (in dBm) for devices to appear in the discovered list. Lower values (more negative) show weaker signals.
+  max_devices:
+    name: Maximum devices
+    description: Maximum number of devices to track in the discovered list.
+  bluetooth_adapter:
+    name: Bluetooth adapter
+    description: Bluetooth adapter to use. Use 'default' for automatic selection, or specify an adapter like 'hci0' or 'hci1'.
+  enable_metrics:
+    name: Enable metrics
+    description: Collect performance metrics for monitoring and debugging.
+  database_backup_enabled:
+    name: Database backups
+    description: Enable automatic database backups. Backups are stored in /config/sfplib/backups.
+  database_backup_interval:
+    name: Backup interval
+    description: How often (in hours) to create automatic database backups.
+  database_backup_max_count:
+    name: Maximum backups
+    description: Maximum number of backup files to keep. Older backups are automatically deleted.
+  enable_debug_ble:
+    name: Debug BLE operations
+    description: Enable verbose Bluetooth Low Energy debugging. Use for troubleshooting connection issues.
+  ble_trace_logging:
+    name: BLE trace logging
+    description: Enable comprehensive BLE protocol trace logging. Creates detailed logs of all BLE operations.
+  enable_debug_tools:
+    name: Debug API endpoints
+    description: Enable debug API endpoints for BLE protocol exploration and troubleshooting.
