@@ -57,8 +57,11 @@ COPY --from=backend-build /usr/local/lib/python3.12/site-packages /usr/lib/pytho
 # Static Alpine.js UI included in rootfs/usr/share/sfplib/ui/
 COPY sfplib/rootfs /
 
-# Make scripts executable
-RUN chmod +x /run.sh && \
+# Create non-root user for security
+RUN addgroup -S appgroup && \
+    adduser -S appuser -G appgroup && \
+    chown -R appuser:appgroup /app /config /share && \
+    chmod +x /run.sh && \
     chmod +x /etc/services.d/backend/run
 
 # Health check (backend API on port 80)
@@ -70,6 +73,9 @@ EXPOSE 80
 
 # Set version as environment variable for application use
 ENV ADDON_VERSION="${BUILD_VERSION}"
+
+# Switch to non-root user
+USER appuser
 
 LABEL \
     io.hass.name="SFPLiberate" \

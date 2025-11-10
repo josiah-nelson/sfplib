@@ -5,20 +5,29 @@ BLE exploration tools exposed via REST API for HA add-on UI.
 These endpoints wrap the BLE exploration framework for easy web access.
 
 ⚠️ REMOVE THIS FILE before releasing to users! Debug tools only.
+
+NOTE: Requires tools directory in PYTHONPATH. The tools directory is not
+included in the add-on distribution and should be mounted separately for development.
+Set PYTHONPATH=/path/to/tools in the environment before starting the backend.
 """
 
 import asyncio
+import json
 from pathlib import Path
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from typing import List, Dict, Any
 
-# Import exploration tools
-import sys
-sys.path.append(str(Path(__file__).parents[4] / "tools"))
-from ble_exploration.explorer import BLEExplorer
-from ble_exploration.test_patterns import get_test_patterns
+# Import exploration tools (requires PYTHONPATH to include tools directory)
+try:
+    from ble_exploration.explorer import BLEExplorer
+    from ble_exploration.test_patterns import get_test_patterns
+    TOOLS_AVAILABLE = True
+except ImportError:
+    TOOLS_AVAILABLE = False
+    BLEExplorer = None
+    get_test_patterns = None
 
 router = APIRouter(prefix="/debug", tags=["debug"])
 
@@ -57,6 +66,12 @@ async def discover_services(request: DiscoverServicesRequest):
     Returns:
         Service and characteristic information
     """
+    if not TOOLS_AVAILABLE:
+        raise HTTPException(
+            status_code=501,
+            detail="BLE exploration tools not available. Ensure tools directory is in PYTHONPATH."
+        )
+    
     try:
         explorer = BLEExplorer(request.device_address, str(LOG_FILE))
         try:

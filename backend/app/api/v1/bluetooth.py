@@ -5,15 +5,31 @@ Simplified BLE operations using HA's native Bluetooth integration.
 No ESPHome proxy needed - uses HA's built-in Bluetooth.
 """
 
+import base64
+import hashlib
 import structlog
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from typing import Any, List
 
 from app.services.ha_bluetooth import HomeAssistantBluetoothClient
+from app.services.ble_operations import BLEOperationsService
+from app.services.sfp_parser import parse_sfp_data
+from app.repositories.module_repository import ModuleRepository
+from app.core.database import get_db
 
 logger = structlog.get_logger(__name__)
 router = APIRouter(prefix="/bluetooth", tags=["bluetooth"])
+
+
+# ====================================================================
+# Dependencies
+# ====================================================================
+
+def get_ha_client() -> HomeAssistantBluetoothClient:
+    """Get HA Bluetooth client from ha_bluetooth module to avoid circular import."""
+    from app.api.v1.ha_bluetooth import get_ha_bluetooth_client
+    return get_ha_bluetooth_client()
 
 
 # ====================================================================
@@ -41,7 +57,7 @@ class WriteRequest(BaseModel):
 
 @router.get("/discover")
 async def discover_devices(
-    client: HomeAssistantBluetoothClient = Depends(lambda: __import__('app.api.v1.ha_bluetooth', fromlist=['get_ha_bluetooth_client']).get_ha_bluetooth_client())
+    client: HomeAssistantBluetoothClient = Depends(get_ha_client)
 ) -> DiscoverResponse:
     """
     Discover SFP Wizard devices via HA Bluetooth.
@@ -95,13 +111,6 @@ async def read_module(request: ReadRequest) -> dict[str, Any]:
     Returns:
         Module ID, metadata, and parsed fields
     """
-    import base64
-    import hashlib
-    from app.services.ble_operations import BLEOperationsService
-    from app.services.sfp_parser import parse_sfp_data
-    from app.repositories.module_repository import ModuleRepository
-    from app.core.database import get_db
-
     logger.info("read_module_start", device=request.device_address, name=request.name)
 
     try:
@@ -187,11 +196,6 @@ async def write_module(request: WriteRequest) -> dict[str, Any]:
     Returns:
         Write success status, verification result, and any differences
     """
-    import base64
-    from app.services.ble_operations import BLEOperationsService
-    from app.repositories.module_repository import ModuleRepository
-    from app.core.database import get_db
-
     logger.info(
         "write_module_start",
         module_id=request.module_id,

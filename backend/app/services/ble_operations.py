@@ -183,9 +183,9 @@ class BLEOperationsService:
             # TODO: Implement proper chunked reading based on protocol exploration
             data = await self._read_response(timeout=30.0)
 
-            if len(data) < 256:
+            if len(data) != 256:
                 raise RuntimeError(
-                    f"Incomplete EEPROM data: got {len(data)} bytes, expected 256"
+                    f"Incorrect EEPROM data length: got {len(data)} bytes, expected 256"
                 )
 
             logger.info("ble_read_success", bytes=len(data))
@@ -223,13 +223,15 @@ class BLEOperationsService:
 
             # TODO: Implement chunked writing (20-byte packets)
             # Based on BLE MTU, data must be sent in small chunks
-            # Need to determine proper chunk size and timing from debug logs
+            # FIXME: The sleep delay is currently fixed at 50ms but may need to be
+            # configurable or adaptive based on device response. Ideally, implement
+            # an acknowledgment mechanism if the device supports it.
 
             chunk_size = 20
             for i in range(0, len(data), chunk_size):
                 chunk = data[i : i + chunk_size]
                 await self._client.write_gatt_char(self.WRITE_CHAR_UUID, chunk)
-                await asyncio.sleep(0.05)  # Small delay between chunks
+                await asyncio.sleep(0.05)  # 50ms delay between chunks
 
             # Wait for write complete notification
             response = await self._read_response(timeout=60.0)

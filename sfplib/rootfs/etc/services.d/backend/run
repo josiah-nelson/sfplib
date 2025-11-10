@@ -48,6 +48,7 @@ ENABLE_DEBUG_TOOLS=$(bashio::config 'enable_debug_tools' 'true')
 DEVICE_PATTERNS=$(bashio::config 'device_name_patterns' | jq -c '.')
 
 # Export environment variables for backend
+export PYTHONPATH=/app/backend
 export LOG_LEVEL
 export HA_ADDON_MODE=true
 export DEPLOYMENT_MODE=homeassistant

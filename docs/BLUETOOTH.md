@@ -1,5 +1,9 @@
 # Bluetooth Integration Documentation
 
+> **Note:** This document contains some historical information from the standalone deployment.
+> References to Web Bluetooth, Next.js, and npm are from archived code. The current
+> Home Assistant add-on uses Alpine.js UI and HA's native Bluetooth API exclusively.
+
 Documentation for SFPLiberate's Home Assistant Bluetooth integration.
 
 ---
