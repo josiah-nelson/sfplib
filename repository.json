@@ -1,0 +1,8 @@
+{
+  "name": "SFPLiberate Add-ons",
+  "url": "https://github.com/josiah-nelson/SFPLiberate",
+  "maintainer": "Josiah Nelson",
+  "description": "Sidecar to enhance functionality of SFP Wizard Devices",
+  "slug": "sfplib",
+  "codenotary": "josiah@jnel.dev"
+}

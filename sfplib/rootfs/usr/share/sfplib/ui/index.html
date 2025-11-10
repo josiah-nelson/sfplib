@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SFP Liberate</title>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        [x-cloak] { display: none !important; }
+        .tab-active { @apply border-b-2 border-blue-500 text-blue-600; }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen" x-data="sfpApp()" x-cloak>
+    <div class="container mx-auto px-4 py-6 max-w-6xl">
+        <!-- Header -->
+        <header class="mb-6">
+            <h1 class="text-3xl font-bold text-gray-900">SFP Liberate</h1>
+            <p class="text-gray-600 mt-1">Clone and manage SFP module EEPROM data</p>
+        </header>
+
+        <!-- Tabs -->
+        <div class="bg-white shadow-sm rounded-lg mb-6">
+            <nav class="flex border-b">
+                <button
+                    @click="currentTab = 'library'"
+                    :class="currentTab === 'library' ? 'tab-active' : ''"
+                    class="px-6 py-3 text-sm font-medium hover:text-blue-600 transition-colors">
+                    Module Library
+                </button>
+                <button
+                    @click="currentTab = 'device'"
+                    :class="currentTab === 'device' ? 'tab-active' : ''"
+                    class="px-6 py-3 text-sm font-medium hover:text-blue-600 transition-colors">
+                    Device Operations
+                </button>
+                <button
+                    x-show="config.enable_debug_tools"
+                    @click="currentTab = 'debug'"
+                    :class="currentTab === 'debug' ? 'tab-active' : ''"
+                    class="px-6 py-3 text-sm font-medium hover:text-blue-600 transition-colors text-orange-600">
+                    🔧 Debug Tools
+                </button>
+            </nav>
+
+            <!-- Tab Content -->
+            <div class="p-6">
+                <!-- Library Tab -->
+                <div x-show="currentTab === 'library'">
+                    <h2 class="text-xl font-semibold mb-4">Saved Modules</h2>
+
+                    <div x-show="loading" class="text-center py-8 text-gray-500">
+                        <div class="animate-spin inline-block w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full"></div>
+                        <p class="mt-2">Loading modules...</p>
+                    </div>
+
+                    <div x-show="!loading && modules.length === 0" class="text-center py-8 text-gray-500">
+                        <p>No modules saved yet. Read from a device to get started.</p>
+                    </div>
+
+                    <div x-show="!loading && modules.length > 0" class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Vendor</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Model</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Serial</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                <template x-for="module in modules" :key="module.id">
+                                    <tr class="hover:bg-gray-50">
+                                        <td class="px-4 py-3 text-sm text-gray-900" x-text="'#' + module.id"></td>
+                                        <td class="px-4 py-3 text-sm text-gray-900" x-text="module.name"></td>
+                                        <td class="px-4 py-3 text-sm text-gray-600" x-text="module.vendor || 'N/A'"></td>
+                                        <td class="px-4 py-3 text-sm text-gray-600" x-text="module.model || 'N/A'"></td>
+                                        <td class="px-4 py-3 text-sm text-gray-600" x-text="module.serial || 'N/A'"></td>
+                                        <td class="px-4 py-3 text-sm">
+                                            <button
+                                                @click="writeModule(module.id)"
+                                                class="text-blue-600 hover:text-blue-800 font-medium mr-3">
+                                                Write
+                                            </button>
+                                            <button
+                                                @click="deleteModule(module.id)"
+                                                class="text-red-600 hover:text-red-800 font-medium">
+                                                Delete
+                                            </button>
+                                        </td>
+                                    </tr>
+                                </template>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Device Operations Tab -->
+                <div x-show="currentTab === 'device'">
+                    <h2 class="text-xl font-semibold mb-4">Device Operations</h2>
+
+                    <div class="space-y-4">
+                        <!-- Device Selection -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">SFP Wizard Device</label>
+                            <button
+                                @click="discoverDevices()"
+                                class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors">
+                                Discover Devices
+                            </button>
+                            <div x-show="devices.length > 0" class="mt-2">
+                                <select x-model="selectedDevice" class="w-full px-3 py-2 border border-gray-300 rounded">
+                                    <option value="">Select a device...</option>
+                                    <template x-for="device in devices" :key="device.address">
+                                        <option :value="device.address" x-text="`${device.name} (${device.address})`"></option>
+                                    </template>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Read Operation -->
+                        <div class="border-t pt-4">
+                            <h3 class="font-medium mb-2">Read from Device</h3>
+                            <p class="text-sm text-gray-600 mb-3">Insert SFP module into wizard, then click Read</p>
+                            <input
+                                x-model="moduleName"
+                                type="text"
+                                placeholder="Module name (e.g., Cisco GLC-SX-MMD)"
+                                class="w-full px-3 py-2 border border-gray-300 rounded mb-2">
+                            <button
+                                @click="readFromDevice()"
+                                :disabled="!selectedDevice"
+                                class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                                Read EEPROM
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Debug Tools Tab -->
+                <div x-show="currentTab === 'debug' && config.enable_debug_tools">
+                    <h2 class="text-xl font-semibold mb-2 text-orange-600">🔧 Debug & Exploration Tools</h2>
+                    <p class="text-sm text-gray-600 mb-4">
+                        <strong>Dev Mode Only:</strong> Tools for reverse engineering the BLE protocol.
+                        Remove this tab before releasing to users.
+                    </p>
+
+                    <div class="space-y-6">
+                        <!-- Configuration Display -->
+                        <div class="bg-green-50 p-4 rounded border-2 border-green-200">
+                            <h3 class="font-medium mb-2 text-green-800">📋 Current Configuration</h3>
+                            <div class="grid grid-cols-2 gap-2 text-sm">
+                                <div class="font-medium text-gray-700">Version:</div>
+                                <div class="font-mono" x-text="config.version || 'Loading...'"></div>
+                                
+                                <div class="font-medium text-gray-700">Device Patterns:</div>
+                                <div class="font-mono" x-text="config.device_name_patterns?.join(', ') || 'N/A'"></div>
+                                
+                                <div class="font-medium text-gray-700">Auto Discover:</div>
+                                <div>
+                                    <span x-show="config.auto_discover" class="text-green-600">✓ Enabled</span>
+                                    <span x-show="!config.auto_discover" class="text-gray-400">✗ Disabled</span>
+                                </div>
+                                
+                                <div class="font-medium text-gray-700">BLE Trace Logging:</div>
+                                <div>
+                                    <span x-show="config.ble_trace_logging" class="text-orange-600 font-bold">🔍 ACTIVE</span>
+                                    <span x-show="!config.ble_trace_logging" class="text-gray-400">✗ Off</span>
+                                </div>
+                                
+                                <div class="font-medium text-gray-700">Debug BLE:</div>
+                                <div>
+                                    <span x-show="config.enable_debug_ble" class="text-blue-600">🐛 Enabled</span>
+                                    <span x-show="!config.enable_debug_ble" class="text-gray-400">✗ Off</span>
+                                </div>
+                                
+                                <div class="font-medium text-gray-700">Scan Interval:</div>
+                                <div x-text="`${config.scan_interval || 5}s`"></div>
+                                
+                                <div class="font-medium text-gray-700">RSSI Threshold:</div>
+                                <div x-text="`${config.rssi_threshold || -80} dBm`"></div>
+                                
+                                <div class="font-medium text-gray-700">Connection Timeout:</div>
+                                <div x-text="`${config.connection_timeout || 30}s`"></div>
+                            </div>
+                            
+                            <!-- BLE UUIDs Section -->
+                            <div class="mt-4 pt-4 border-t border-green-300">
+                                <h4 class="font-medium text-sm mb-2 text-green-800">SFP Wizard BLE UUIDs (Firmware v1.0.10)</h4>
+                                <div class="space-y-1 text-xs">
+                                    <div>
+                                        <span class="font-medium text-gray-700">Service:</span>
+                                        <code class="bg-white px-2 py-1 rounded ml-2" x-text="config.sfp_service_uuid || 'N/A'"></code>
+                                    </div>
+                                    <div>
+                                        <span class="font-medium text-gray-700">Write:</span>
+                                        <code class="bg-white px-2 py-1 rounded ml-2" x-text="config.sfp_write_char_uuid || 'N/A'"></code>
+                                    </div>
+                                    <div>
+                                        <span class="font-medium text-gray-700">Notify:</span>
+                                        <code class="bg-white px-2 py-1 rounded ml-2" x-text="config.sfp_notify_char_uuid || 'N/A'"></code>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <p class="text-xs text-gray-600 mt-3 italic">
+                                Configure these in Home Assistant: Settings → Add-ons → SFPLiberate → Configuration
+                            </p>
+                        </div>
+
+                        <!-- Device Info -->
+                        <div class="bg-blue-50 p-4 rounded">
+                            <h3 class="font-medium mb-2">Selected Device</h3>
+                            <p x-show="!selectedDevice" class="text-sm text-gray-600">
+                                No device selected. Go to "Device Operations" tab to discover devices.
+                            </p>
+                            <p x-show="selectedDevice" class="text-sm font-mono" x-text="selectedDevice"></p>
+                        </div>
+
+                        <!-- Service Discovery -->
+                        <div class="border rounded p-4">
+                            <h3 class="font-medium mb-2">1. Service Discovery</h3>
+                            <p class="text-sm text-gray-600 mb-3">
+                                Enumerate all BLE services and characteristics
+                            </p>
+                            <button
+                                @click="runServiceDiscovery()"
+                                :disabled="!selectedDevice || debugRunning"
+                                class="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 transition-colors disabled:opacity-50">
+                                Discover Services
+                            </button>
+                        </div>
+
+                        <!-- Write Pattern Testing -->
+                        <div class="border rounded p-4">
+                            <h3 class="font-medium mb-2">2. Write Pattern Testing</h3>
+                            <p class="text-sm text-gray-600 mb-3">
+                                Test 100+ command patterns to reverse engineer API
+                            </p>
+                            <button
+                                @click="runWriteTests()"
+                                :disabled="!selectedDevice || debugRunning"
+                                class="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 transition-colors disabled:opacity-50">
+                                Run Write Tests
+                            </button>
+                        </div>
+
+                        <!-- Notification Monitoring -->
+                        <div class="border rounded p-4">
+                            <h3 class="font-medium mb-2">3. Notification Monitoring</h3>
+                            <p class="text-sm text-gray-600 mb-3">
+                                Monitor BLE notifications while you insert/remove modules (60s)
+                            </p>
+                            <button
+                                @click="runNotificationMonitoring()"
+                                :disabled="!selectedDevice || debugRunning"
+                                class="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 transition-colors disabled:opacity-50">
+                                Start Monitoring
+                            </button>
+                            <p x-show="monitoringCountdown > 0" class="text-sm text-orange-600 mt-2">
+                                <strong>ACTION REQUIRED:</strong> Insert and remove SFP module now!
+                                (<span x-text="monitoringCountdown"></span>s remaining)
+                            </p>
+                        </div>
+
+                        <!-- Export Logs -->
+                        <div class="border rounded p-4 bg-green-50">
+                            <h3 class="font-medium mb-2">4. Export Logs for Analysis</h3>
+                            <p class="text-sm text-gray-600 mb-3">
+                                Download JSONL logs for LLM analysis with Claude Code
+                            </p>
+                            <button
+                                @click="exportLogs()"
+                                class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors">
+                                Download Logs
+                            </button>
+                        </div>
+
+                        <!-- Live Log Output -->
+                        <div x-show="debugLog.length > 0" class="border rounded p-4 bg-gray-50">
+                            <h3 class="font-medium mb-2">Debug Log</h3>
+                            <div class="bg-black text-green-400 p-3 rounded font-mono text-xs h-64 overflow-y-auto">
+                                <template x-for="(line, index) in debugLog" :key="index">
+                                    <div x-text="line"></div>
+                                </template>
+                            </div>
+                            <button
+                                @click="debugLog = []"
+                                class="mt-2 px-3 py-1 text-sm bg-gray-600 text-white rounded hover:bg-gray-700">
+                                Clear Log
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Status Messages -->
+        <div x-show="statusMessage"
+             class="fixed bottom-4 right-4 max-w-md p-4 rounded shadow-lg transition-all"
+             :class="{
+                 'bg-blue-100 border-blue-500 text-blue-800': statusType === 'info',
+                 'bg-green-100 border-green-500 text-green-800': statusType === 'success',
+                 'bg-red-100 border-red-500 text-red-800': statusType === 'error'
+             }"
+             style="border-left: 4px solid;">
+            <div class="flex justify-between items-start">
+                <p class="text-sm" x-text="statusMessage"></p>
+                <button @click="statusMessage = ''" class="ml-4 text-gray-500 hover:text-gray-700">
+                    ✕
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,6 @@
+{
+  "name": "SFPLiberate",
+  "target": "sfplib",
+  "description": "Bluetooth companion for Ubiquiti SFP Wizard",
+  "panel_icon": "mdi:ethernet"
+}
