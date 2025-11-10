@@ -61,7 +61,6 @@ COPY sfplib/rootfs /
 # Note: /config and /share are mounted by HA at runtime
 # Running as root is required for D-Bus/Bluetooth access and system operations
 RUN mkdir -p /app /data && \
-    chmod +x /run.sh && \
     chmod +x /etc/services.d/backend/run
 
 # Health check (backend API on port 80)
