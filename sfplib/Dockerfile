@@ -91,6 +91,3 @@ LABEL \
     org.opencontainers.image.source="https://github.com/josiah-nelson/SFPLiberate" \
     org.opencontainers.image.documentation="https://github.com/josiah-nelson/SFPLiberate/blob/main/docs/HOME_ASSISTANT.md" \
     org.opencontainers.image.version=${BUILD_VERSION}
-
-# Start via s6-overlay (base image handles this)
-CMD ["/run.sh"]
