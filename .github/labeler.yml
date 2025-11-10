@@ -1,0 +1,59 @@
+# Labeler configuration for automatic PR labeling
+
+# Backend changes
+backend:
+  - changed-files:
+    - any-glob-to-any-file: 'backend/**/*'
+
+# Frontend changes
+frontend:
+  - changed-files:
+    - any-glob-to-any-file: 'sfplib/rootfs/usr/share/sfplib/ui/**/*'
+
+# Add-on configuration
+addon:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'sfplib/config.yaml'
+      - 'sfplib/build.yaml'
+      - 'sfplib/Dockerfile'
+      - 'sfplib/apparmor.txt'
+
+# Documentation
+documentation:
+  - changed-files:
+    - any-glob-to-any-file:
+      - '**/*.md'
+      - 'docs/**/*'
+      - 'sfplib/DOCS.md'
+
+# GitHub workflows
+ci/cd:
+  - changed-files:
+    - any-glob-to-any-file: '.github/**/*'
+
+# Dependencies
+dependencies:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'backend/pyproject.toml'
+      - 'backend/poetry.lock'
+
+# Tests
+tests:
+  - changed-files:
+    - any-glob-to-any-file: 'backend/tests/**/*'
+
+# Security
+security:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'sfplib/apparmor.txt'
+      - '.github/workflows/security.yaml'
+
+# Devcontainer
+devcontainer:
+  - changed-files:
+    - any-glob-to-any-file:
+      - '.devcontainer/**/*'
+      - '.vscode/**/*'

@@ -1,0 +1,16 @@
+{
+  "recommendations": [
+    "ms-python.python",
+    "ms-python.vscode-pylance",
+    "ms-python.black-formatter",
+    "charliermarsh.ruff",
+    "timonwong.shellcheck",
+    "esbenp.prettier-vscode",
+    "redhat.vscode-yaml",
+    "davidanson.vscode-markdownlint",
+    "ms-azuretools.vscode-docker",
+    "github.vscode-pull-request-github",
+    "eamodio.gitlens"
+  ],
+  "unwantedRecommendations": []
+}

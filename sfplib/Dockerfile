@@ -57,10 +57,10 @@ COPY --from=backend-build /usr/local/lib/python3.12/site-packages /usr/lib/pytho
 # Static Alpine.js UI included in rootfs/usr/share/sfplib/ui/
 COPY sfplib/rootfs /
 
-# Create non-root user for security
-RUN addgroup -S appgroup && \
-    adduser -S appuser -G appgroup && \
-    chown -R appuser:appgroup /app /config /share && \
+# Create necessary directories and set permissions
+# Note: /config and /share are mounted by HA at runtime
+# Running as root is required for D-Bus/Bluetooth access and system operations
+RUN mkdir -p /app /data && \
     chmod +x /run.sh && \
     chmod +x /etc/services.d/backend/run
 
@@ -72,17 +72,15 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
 EXPOSE 80
 
 # Set version as environment variable for application use
-ENV ADDON_VERSION="${BUILD_VERSION}"
+ENV ADDON_VERSION=${BUILD_VERSION}
 
-# Switch to non-root user
-USER appuser
-
+# Set container metadata
 LABEL \
     io.hass.name="SFPLiberate" \
     io.hass.description="Bluetooth companion for Ubiquiti SFP Wizard" \
     io.hass.arch="aarch64|amd64|armhf|armv7" \
     io.hass.type="addon" \
-    io.hass.version="${BUILD_VERSION}" \
+    io.hass.version=${BUILD_VERSION} \
     maintainer="Josiah Nelson <https://github.com/josiah-nelson>" \
     org.opencontainers.image.title="SFPLiberate" \
     org.opencontainers.image.description="Bluetooth companion for Ubiquiti SFP Wizard" \
@@ -92,7 +90,7 @@ LABEL \
     org.opencontainers.image.url="https://github.com/josiah-nelson/SFPLiberate" \
     org.opencontainers.image.source="https://github.com/josiah-nelson/SFPLiberate" \
     org.opencontainers.image.documentation="https://github.com/josiah-nelson/SFPLiberate/blob/main/docs/HOME_ASSISTANT.md" \
-    org.opencontainers.image.version="${BUILD_VERSION}"
+    org.opencontainers.image.version=${BUILD_VERSION}
 
 # Start via s6-overlay (base image handles this)
 CMD ["/run.sh"]

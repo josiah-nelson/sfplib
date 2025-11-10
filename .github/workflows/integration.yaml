@@ -1,0 +1,232 @@
+name: Integration Tests
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'sfplib/**'
+      - 'backend/**'
+      - '.github/workflows/integration.yaml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'sfplib/**'
+      - 'backend/**'
+      - '.github/workflows/integration.yaml'
+  workflow_dispatch:
+
+jobs:
+  addon-test:
+    name: Test add-on in HA environment
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build add-on for testing
+        run: |
+          docker build \
+            --build-arg BUILD_FROM=ghcr.io/home-assistant/amd64-base:3.22 \
+            --build-arg BUILD_VERSION=test \
+            -t local/sfplib:test \
+            -f sfplib/Dockerfile \
+            .
+
+      - name: Test Docker image runs
+        run: |
+          docker run -d \
+            --name sfplib-test \
+            -e LOG_LEVEL=debug \
+            -p 8080:80 \
+            local/sfplib:test
+
+          # Wait for service to be ready
+          sleep 10
+
+          # Check if container is still running
+          if ! docker ps | grep -q sfplib-test; then
+            echo "Container failed to start"
+            docker logs sfplib-test
+            exit 1
+          fi
+
+      - name: Test health endpoint
+        run: |
+          # Wait for service to be fully ready
+          for i in {1..30}; do
+            if curl -f http://localhost:8080/api/v1/health; then
+              echo "Health check passed"
+              break
+            fi
+            echo "Waiting for service... attempt $i/30"
+            sleep 2
+          done
+
+          # Verify health check passed
+          curl -f http://localhost:8080/api/v1/health || exit 1
+
+      - name: Test API endpoints
+        run: |
+          # Test modules endpoint
+          response=$(curl -s -w "\n%{http_code}" http://localhost:8080/api/v1/modules)
+          http_code=$(echo "$response" | tail -n 1)
+          if [ "$http_code" != "200" ]; then
+            echo "Modules endpoint failed with status $http_code"
+            exit 1
+          fi
+
+          # Test Bluetooth endpoint
+          response=$(curl -s -w "\n%{http_code}" http://localhost:8080/api/v1/bluetooth/status)
+          http_code=$(echo "$response" | tail -n 1)
+          if [ "$http_code" != "200" ]; then
+            echo "Bluetooth status endpoint failed with status $http_code"
+            exit 1
+          fi
+
+      - name: Check logs for errors
+        if: always()
+        continue-on-error: true
+        run: |
+          docker logs sfplib-test
+
+          # Check for critical errors in logs (non-fatal)
+          if docker logs sfplib-test 2>&1 | grep -i "critical\|fatal"; then
+            echo "⚠️ Warning: Critical errors found in logs"
+          else
+            echo "✅ No critical errors found"
+          fi
+
+      - name: Cleanup
+        if: always()
+        run: |
+          docker stop sfplib-test || true
+          docker rm sfplib-test || true
+
+  supervisor-test:
+    name: Test in HA Supervisor environment
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Home Assistant test environment
+        uses: ludeeus/action-hassfest@main
+        with:
+          path: ./sfplib
+
+      - name: Validate add-on configuration
+        run: |
+          # Check required files exist
+          required_files=(
+            "sfplib/config.yaml"
+            "sfplib/Dockerfile"
+            "sfplib/README.md"
+            "sfplib/CHANGELOG.md"
+          )
+
+          for file in "${required_files[@]}"; do
+            if [ ! -f "$file" ]; then
+              echo "Required file missing: $file"
+              exit 1
+            fi
+          done
+
+      - name: Validate add-on structure
+        run: |
+          # Validate config.yaml structure
+          python3 -c "
+          import yaml
+          import sys
+
+          with open('sfplib/config.yaml', 'r') as f:
+              config = yaml.safe_load(f)
+
+          required_keys = ['name', 'version', 'slug', 'description', 'arch']
+          for key in required_keys:
+              if key not in config:
+                  print(f'Missing required key in config.yaml: {key}')
+                  sys.exit(1)
+
+          # Validate architectures
+          valid_archs = ['aarch64', 'amd64', 'armhf', 'armv7', 'i386']
+          for arch in config['arch']:
+              if arch not in valid_archs:
+                  print(f'Invalid architecture: {arch}')
+                  sys.exit(1)
+
+          print('Add-on configuration is valid')
+          "
+
+  backend-integration:
+    name: Backend integration tests
+    runs-on: ubuntu-latest
+    services:
+      # Mock D-Bus for Bluetooth testing
+      dbus:
+        image: busybox
+        options: >-
+          --name dbus
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          version: 1.8.3
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+
+      - name: Load cached venv
+        id: cached-poetry-dependencies
+        uses: actions/cache@v4
+        with:
+          path: backend/.venv
+          key: venv-${{ runner.os }}-${{ hashFiles('**/poetry.lock') }}
+
+      - name: Install dependencies
+        if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
+        working-directory: backend
+        run: poetry install --no-interaction --no-root
+
+      - name: Install project
+        working-directory: backend
+        run: poetry install --no-interaction
+
+      - name: Run integration tests
+        working-directory: backend
+        env:
+          DATABASE_URL: "sqlite+aiosqlite:///./test.db"
+          LOG_LEVEL: "DEBUG"
+        run: |
+          poetry run pytest tests/ -v --tb=short
+
+      - name: Run tests with coverage
+        continue-on-error: true
+        working-directory: backend
+        env:
+          DATABASE_URL: "sqlite+aiosqlite:///./test.db"
+          LOG_LEVEL: "DEBUG"
+        run: |
+          poetry run pytest tests/ --cov=app --cov-report=xml --cov-report=term-missing || true
+
+      - name: Upload coverage to Codecov
+        if: always()
+        continue-on-error: true
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./backend/coverage.xml
+          flags: backend
+          name: backend-coverage
+          fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}

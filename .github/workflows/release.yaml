@@ -1,0 +1,141 @@
+name: Release
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., 0.1.0)'
+        required: true
+        type: string
+
+jobs:
+  build:
+    name: Build ${{ matrix.arch }} add-on
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - arch: aarch64
+            platform: linux/arm64
+            base_image: ghcr.io/home-assistant/aarch64-base:3.22
+          - arch: amd64
+            platform: linux/amd64
+            base_image: ghcr.io/home-assistant/amd64-base:3.22
+          - arch: armhf
+            platform: linux/arm/v6
+            base_image: ghcr.io/home-assistant/armhf-base:3.22
+          - arch: armv7
+            platform: linux/arm/v7
+            base_image: ghcr.io/home-assistant/armv7-base:3.22
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Get version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" == "release" ]; then
+            version="${{ github.event.release.tag_name }}"
+            # Remove 'v' prefix if present
+            version="${version#v}"
+          else
+            version="${{ inputs.version }}"
+          fi
+          echo "version=$version" >> $GITHUB_OUTPUT
+          echo "Releasing version: $version"
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push ${{ matrix.arch }} add-on
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: sfplib/Dockerfile
+          platforms: ${{ matrix.platform }}
+          build-args: |
+            BUILD_FROM=${{ matrix.base_image }}
+            BUILD_VERSION=${{ steps.version.outputs.version }}
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/sfplib-addon-${{ matrix.arch }}:${{ steps.version.outputs.version }}
+            ghcr.io/${{ github.repository_owner }}/sfplib-addon-${{ matrix.arch }}:latest
+          push: true
+          cache-from: type=gha,scope=${{ matrix.arch }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.arch }}
+
+  release-summary:
+    name: Release Summary
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Get add-on information
+        id: info
+        run: |
+          name=$(grep -E '^name:' sfplib/config.yaml | awk '{print $2}' | tr -d '"')
+          description=$(grep -E '^description:' sfplib/config.yaml | cut -d'"' -f2)
+          echo "name=$name" >> $GITHUB_OUTPUT
+          echo "description=$description" >> $GITHUB_OUTPUT
+
+      - name: Get version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" == "release" ]; then
+            version="${{ github.event.release.tag_name }}"
+            version="${version#v}"
+          else
+            version="${{ inputs.version }}"
+          fi
+          echo "version=$version" >> $GITHUB_OUTPUT
+
+      - name: Create release summary
+        run: |
+          cat >> $GITHUB_STEP_SUMMARY << EOF
+          # 🚀 Release Complete
+
+          **Add-on:** ${{ steps.info.outputs.name }}
+          **Version:** ${{ steps.version.outputs.version }}
+          **Description:** ${{ steps.info.outputs.description }}
+
+          ## Built Architectures
+          - aarch64 (ARM 64-bit)
+          - amd64 (Intel/AMD 64-bit)
+          - armhf (ARM 32-bit hard float)
+          - armv7 (ARM 32-bit v7)
+
+          ## Container Images
+          All images have been pushed to GitHub Container Registry:
+
+          - \`ghcr.io/${{ github.repository_owner }}/sfplib-addon-aarch64:${{ steps.version.outputs.version }}\`
+          - \`ghcr.io/${{ github.repository_owner }}/sfplib-addon-amd64:${{ steps.version.outputs.version }}\`
+          - \`ghcr.io/${{ github.repository_owner }}/sfplib-addon-armhf:${{ steps.version.outputs.version }}\`
+          - \`ghcr.io/${{ github.repository_owner }}/sfplib-addon-armv7:${{ steps.version.outputs.version }}\`
+
+          Each architecture also tagged as \`:latest\`
+
+          ## Next Steps
+          - ✅ Verify images in [GitHub Container Registry](https://github.com/${{ github.repository_owner }}?tab=packages)
+          - 📝 Update repository.json if needed
+          - 🧪 Test installation in Home Assistant
+          - 📢 Announce release to users
+
+          ## Installation
+          Add this repository to Home Assistant:
+          \`\`\`
+          https://github.com/${{ github.repository }}
+          \`\`\`
+          EOF
