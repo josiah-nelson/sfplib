@@ -1,0 +1,16 @@
+#!/usr/bin/with-contenv bashio
+# shellcheck shell=bash
+# ==============================================================================
+# Home Assistant Add-on: SFPLiberate
+# Runs initialization commands before services start
+# ==============================================================================
+set -e
+
+bashio::log.info "Initializing SFPLiberate..."
+
+# Create necessary directories
+bashio::log.info "Creating data directories..."
+mkdir -p /config/sfplib/submissions
+mkdir -p /config/sfplib/backups
+
+bashio::log.info "Initialization complete"

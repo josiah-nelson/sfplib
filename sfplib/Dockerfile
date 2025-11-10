@@ -61,7 +61,8 @@ COPY sfplib/rootfs /
 # Note: /config and /share are mounted by HA at runtime
 # Running as root is required for D-Bus/Bluetooth access and system operations
 RUN mkdir -p /app /data && \
-    chmod +x /etc/services.d/backend/run
+    chmod +x /etc/services.d/backend/run && \
+    chmod +x /etc/s6-overlay/s6-rc.d/init-sfplib/run
 
 # Health check (backend API on port 80)
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
@@ -91,9 +92,5 @@ LABEL \
     org.opencontainers.image.documentation="https://github.com/josiah-nelson/SFPLiberate/blob/main/docs/HOME_ASSISTANT.md" \
     org.opencontainers.image.version=${BUILD_VERSION}
 
-# Copy run script and set executable
-COPY sfplib/run.sh /
-RUN chmod a+x /run.sh
-
-# Start via run script
-CMD ["/run.sh"]
+# Start via s6-overlay init system (provided by Home Assistant base image)
+CMD []
