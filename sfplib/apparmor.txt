@@ -11,12 +11,17 @@ profile sfpliberate flags=(attach_disconnected,mediate_deleted) {
   capability setgid,
   capability setuid,
 
-  # Allow S6 overlay
+  # S6-Overlay v3 support
   /init ix,
   /bin/** ix,
   /usr/bin/** ix,
   /usr/lib/bashio/** ix,
-  /etc/s6/** rw,
+  /run/{s6,s6-rc*,service}/** ix,
+  /package/** ix,
+  /command/** ix,
+  /etc/s6-overlay/** rwix,
+  /etc/services.d/** rwix,
+  /etc/cont-init.d/** rwix,
   /run/s6/** rw,
   /var/run/s6/** rw,
 
@@ -26,10 +31,13 @@ profile sfpliberate flags=(attach_disconnected,mediate_deleted) {
   /usr/local/lib/python3*/** mr,
 
   # Allow access to add-on files
-  /app/** r,
+  /app/** rwix,
+  /usr/share/sfplib/** r,
   /usr/share/sfpliberate/** r,
 
   # Allow read/write to config directory (database, backups)
+  /config/sfplib/** rw,
+  /config/sfplib/ rw,
   /config/sfpliberate/** rw,
   /config/sfpliberate/ rw,
 
