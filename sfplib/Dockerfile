@@ -61,8 +61,8 @@ COPY sfplib/rootfs /
 # Note: /config and /share are mounted by HA at runtime
 # Running as root is required for D-Bus/Bluetooth access and system operations
 RUN mkdir -p /app /data && \
-    chmod +x /etc/services.d/backend/run && \
-    chmod +x /etc/s6-overlay/s6-rc.d/init-sfplib/run
+    chmod +x /etc/s6-overlay/s6-rc.d/init-sfplib/run && \
+    chmod +x /etc/s6-overlay/s6-rc.d/backend/run
 
 # Health check (backend API on port 80)
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
