@@ -1,0 +1,74 @@
+# Version control
+.git
+.gitignore
+.gitattributes
+
+# Python
+__pycache__
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info
+dist/
+build/
+.eggs/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+*.cover
+.venv
+venv/
+ENV/
+env/
+
+# Documentation (not needed in image)
+docs/
+*.md
+!homeassistant/README.md
+!homeassistant/DOCS.md
+!homeassistant/CHANGELOG.md
+LICENSE
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Node.js (if any)
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Temporary files
+*.log
+*.tmp
+*.bak
+.cache/
+
+# Development tools
+.editorconfig
+.pre-commit-config.yaml
+Makefile
+
+# Testing
+tests/
+test/
+*.test.js
+*.spec.js
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+.circleci/
+
+# Misc
+.env.local
+.env.development
+.env.test
+*.orig
