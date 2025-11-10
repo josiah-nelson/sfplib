@@ -162,7 +162,7 @@ jobs:
 
       - name: Run Hadolint
         continue-on-error: true
-        uses: hadolint/hadolint-action@v3.1.0
+        uses: hadolint/hadolint-action@v3.3.0
         with:
           dockerfile: sfplib/Dockerfile
           failure-threshold: error
