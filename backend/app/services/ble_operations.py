@@ -130,8 +130,7 @@ class BLEOperationsService:
         while True:
             remaining = end_time - asyncio.get_event_loop().time()
             if remaining <= 0:
-                # Clear queue to prevent memory leaks
-                while not self._notification_queue.empty():
+                while True:
                     try:
                         self._notification_queue.get_nowait()
                     except asyncio.QueueEmpty:
