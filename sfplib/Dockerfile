@@ -90,3 +90,10 @@ LABEL \
     org.opencontainers.image.source="https://github.com/josiah-nelson/SFPLiberate" \
     org.opencontainers.image.documentation="https://github.com/josiah-nelson/SFPLiberate/blob/main/docs/HOME_ASSISTANT.md" \
     org.opencontainers.image.version=${BUILD_VERSION}
+
+# Copy run script and set executable
+COPY sfplib/run /
+RUN chmod +x /run
+
+# Start via run script
+CMD ["/run"]
