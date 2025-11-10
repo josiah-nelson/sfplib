@@ -92,7 +92,7 @@ LABEL \
     org.opencontainers.image.version=${BUILD_VERSION}
 
 # Copy run script and set executable
-COPY run.sh /
+COPY sfplib/run.sh /
 RUN chmod a+x /run.sh
 
 # Start via run script
