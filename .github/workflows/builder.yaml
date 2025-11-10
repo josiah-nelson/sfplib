@@ -23,36 +23,38 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        arch: [aarch64, amd64, armhf, armv7]
+        include:
+          - arch: aarch64
+            platform: linux/arm64
+            base_image: ghcr.io/home-assistant/aarch64-base:3.22
+          - arch: amd64
+            platform: linux/amd64
+            base_image: ghcr.io/home-assistant/amd64-base:3.22
+          - arch: armhf
+            platform: linux/arm/v6
+            base_image: ghcr.io/home-assistant/armhf-base:3.22
+          - arch: armv7
+            platform: linux/arm/v7
+            base_image: ghcr.io/home-assistant/armv7-base:3.22
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Get add-on information
-        id: info
-        uses: home-assistant/actions/helpers/info@master
-        with:
-          path: ./sfplib
-
-      - name: Check if add-on should be built
-        id: check
+      - name: Get add-on version
+        id: version
         run: |
-          if [[ "${{ steps.info.outputs.architectures }}" =~ ${{ matrix.arch }} ]]; then
-            echo "build_arch=true" >> $GITHUB_OUTPUT
-          else
-            echo "build_arch=false" >> $GITHUB_OUTPUT
-          fi
+          version=$(grep -E '^version:' sfplib/config.yaml | awk '{print $2}' | tr -d '"')
+          echo "version=$version" >> $GITHUB_OUTPUT
+          echo "Building version: $version"
 
       - name: Set up QEMU
-        if: steps.check.outputs.build_arch == 'true'
         uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
-        if: steps.check.outputs.build_arch == 'true'
         uses: docker/setup-buildx-action@v3
 
       - name: Log in to GitHub Container Registry
-        if: steps.check.outputs.build_arch == 'true' && github.event_name != 'pull_request'
+        if: github.event_name != 'pull_request'
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
@@ -60,11 +62,35 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build ${{ matrix.arch }} add-on
-        if: steps.check.outputs.build_arch == 'true'
-        uses: home-assistant/builder@master
+        uses: docker/build-push-action@v5
         with:
-          args: |
-            --${{ matrix.arch }} \
-            --target sfplib \
-            --docker-hub ghcr.io/${{ github.repository_owner }} \
-            ${{ github.event_name != 'pull_request' && '--push' || '' }}
+          context: .
+          file: sfplib/Dockerfile
+          platforms: ${{ matrix.platform }}
+          build-args: |
+            BUILD_FROM=${{ matrix.base_image }}
+            BUILD_VERSION=${{ steps.version.outputs.version }}
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/sfplib-addon-${{ matrix.arch }}:${{ steps.version.outputs.version }}
+            ghcr.io/${{ github.repository_owner }}/sfplib-addon-${{ matrix.arch }}:latest
+          push: ${{ github.event_name != 'pull_request' }}
+          cache-from: type=gha,scope=${{ matrix.arch }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.arch }}
+
+      - name: Build summary
+        if: always()
+        run: |
+          cat >> $GITHUB_STEP_SUMMARY << EOF
+          # Build Complete: ${{ matrix.arch }}
+
+          **Architecture:** ${{ matrix.arch }}
+          **Platform:** ${{ matrix.platform }}
+          **Version:** ${{ steps.version.outputs.version }}
+          **Base Image:** ${{ matrix.base_image }}
+
+          ## Image Tags
+          - ghcr.io/${{ github.repository_owner }}/sfplib-addon-${{ matrix.arch }}:${{ steps.version.outputs.version }}
+          - ghcr.io/${{ github.repository_owner }}/sfplib-addon-${{ matrix.arch }}:latest
+
+          ${{ github.event_name != 'pull_request' && 'Pushed to registry' || 'Built locally (PR) - not pushed' }}
+          EOF

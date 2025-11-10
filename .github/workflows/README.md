@@ -23,12 +23,21 @@ Runs continuous integration checks including:
 Builds multi-architecture Docker images for the add-on:
 
 - **Architectures:** aarch64, amd64, armhf, armv7
-- **Build System:** Home Assistant Builder with Docker Buildx
+- **Build System:** Docker Buildx with QEMU emulation
+- **Build Context:** Repository root (allows access to backend code)
 - **Registry:** GitHub Container Registry (ghcr.io)
+- **Caching:** GitHub Actions cache for faster builds
 - **Behavior:**
   - PRs: Builds images but doesn't push
   - Main branch: Builds and pushes images
   - Manual: Can be triggered via workflow_dispatch
+
+**Technical Details:**
+- Uses matrix strategy to build all architectures in parallel
+- Extracts version from `sfplib/config.yaml`
+- Maps architectures to Docker platforms (e.g., aarch64 → linux/arm64)
+- Tags images as both `:version` and `:latest`
+- Builds from repo root to access both `backend/` and `sfplib/` directories
 
 ### Release (`release.yaml`)
 
@@ -37,9 +46,10 @@ Builds multi-architecture Docker images for the add-on:
 Builds and publishes release versions of the add-on:
 
 - **Architectures:** All supported architectures (aarch64, amd64, armhf, armv7)
-- **Versioning:** Uses release tag or manual input
+- **Versioning:** Uses release tag (strips 'v' prefix) or manual input
 - **Registry:** Pushes to GitHub Container Registry
-- **Summary:** Creates a release summary with container image details
+- **Summary:** Creates a comprehensive release summary with image details
+- **Always Pushes:** Unlike builder workflow, always pushes images to registry
 
 ## Setup Requirements
 
