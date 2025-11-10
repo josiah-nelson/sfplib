@@ -1,0 +1,123 @@
+name: Release
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., 0.1.0)'
+        required: true
+        type: string
+
+jobs:
+  information:
+    name: Gather add-on information
+    runs-on: ubuntu-latest
+    outputs:
+      architectures: ${{ steps.info.outputs.architectures }}
+      name: ${{ steps.info.outputs.name }}
+      description: ${{ steps.info.outputs.description }}
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Get add-on information
+        id: info
+        uses: home-assistant/actions/helpers/info@master
+        with:
+          path: ./sfplib
+
+      - name: Get version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" == "release" ]; then
+            echo "version=${{ github.event.release.tag_name }}" >> $GITHUB_OUTPUT
+          else
+            echo "version=${{ inputs.version }}" >> $GITHUB_OUTPUT
+          fi
+
+  build:
+    name: Build ${{ matrix.arch }} add-on
+    needs: information
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        arch: [aarch64, amd64, armhf, armv7]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check if add-on should be built
+        id: check
+        run: |
+          if [[ "${{ needs.information.outputs.architectures }}" =~ ${{ matrix.arch }} ]]; then
+            echo "build_arch=true" >> $GITHUB_OUTPUT
+          else
+            echo "build_arch=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Set up QEMU
+        if: steps.check.outputs.build_arch == 'true'
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        if: steps.check.outputs.build_arch == 'true'
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        if: steps.check.outputs.build_arch == 'true'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push ${{ matrix.arch }} add-on
+        if: steps.check.outputs.build_arch == 'true'
+        uses: home-assistant/builder@master
+        with:
+          args: |
+            --${{ matrix.arch }} \
+            --target sfplib \
+            --docker-hub ghcr.io/${{ github.repository_owner }} \
+            --version ${{ needs.information.outputs.version }} \
+            --push
+
+  update-repository:
+    name: Update repository.json
+    needs: [information, build]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Update repository.json with version
+        run: |
+          # This step could be expanded to automatically update repository.json
+          # with the new version information if needed
+          echo "Version ${{ needs.information.outputs.version }} has been released"
+          echo "Update your repository.json if needed to include this version"
+
+      - name: Create summary
+        run: |
+          cat >> $GITHUB_STEP_SUMMARY << EOF
+          # 🚀 Release Complete
+
+          **Add-on:** ${{ needs.information.outputs.name }}
+          **Version:** ${{ needs.information.outputs.version }}
+          **Description:** ${{ needs.information.outputs.description }}
+
+          ## Built Architectures
+          ${{ needs.information.outputs.architectures }}
+
+          ## Container Images
+          All images have been pushed to:
+          \`ghcr.io/${{ github.repository_owner }}/sfplib-{arch}:${{ needs.information.outputs.version }}\`
+
+          ## Next Steps
+          - Verify images in GitHub Container Registry
+          - Update repository.json if needed
+          - Test installation in Home Assistant
+          EOF
