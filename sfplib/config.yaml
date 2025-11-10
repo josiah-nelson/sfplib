@@ -18,8 +18,10 @@ timeout: 120
 watchdog: "http://[HOST]:[PORT:80]/health"
 ingress: true
 ingress_port: 80
+ingress_entry: /
 panel_icon: mdi:ethernet
 panel_title: SFPLiberate
+webui: "http://[HOST]:[PORT:80]"
 
 # Bluetooth access required
 host_dbus: true
@@ -56,7 +58,7 @@ options:
 schema:
   log_level: list(debug|info|warning|error)
   auto_discover: bool
-  device_name_patterns: list(str)
+  device_name_patterns: [str]
   connection_timeout: int(10,120)
   device_expiry_seconds: int(60,600)
   scan_interval: int(1,60)
