@@ -153,12 +153,11 @@ class BLEOperationsService:
                     # Got partial data, return it
                     return bytes(self._response_buffer)
                 # Clear queue to prevent memory leaks
-                while not self._notification_queue.empty():
+                while True:
                     try:
                         self._notification_queue.get_nowait()
                     except asyncio.QueueEmpty:
                         break
-                raise TimeoutError(f"Response timeout after {timeout}s")
 
     async def read_eeprom(self) -> bytes:
         """
