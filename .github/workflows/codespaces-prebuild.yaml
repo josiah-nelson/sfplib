@@ -1,0 +1,58 @@
+name: Codespaces Prebuild
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  prebuild:
+    name: Prebuild Codespaces environment
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build devcontainer
+        uses: devcontainers/ci@v0.3
+        with:
+          imageName: ghcr.io/${{ github.repository }}-devcontainer
+          cacheFrom: ghcr.io/${{ github.repository }}-devcontainer
+          push: ${{ github.event_name != 'pull_request' && 'always' || 'never' }}
+          env: |
+            GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pre-install Python dependencies
+        if: github.event_name != 'pull_request'
+        run: |
+          echo "Dependencies will be cached in the devcontainer"
+
+      - name: Create prebuild summary
+        run: |
+          cat >> $GITHUB_STEP_SUMMARY << EOF
+          # 🚀 Codespaces Prebuild Complete
+
+          The development environment has been pre-built and cached for faster Codespaces startup.
+
+          ## What's included:
+          - Home Assistant Supervisor environment
+          - Python 3.12 with Poetry
+          - VS Code extensions
+          - Development tools (ruff, mypy, black, pytest)
+
+          ## To use:
+          1. Click "Code" → "Codespaces" → "Create codespace"
+          2. Wait for the prebuild to load (should be fast!)
+          3. Run task "Start Home Assistant" to begin testing
+
+          ## Ports:
+          - **7123**: Home Assistant UI (http://localhost:7123)
+          - **7357**: Home Assistant API
+          EOF

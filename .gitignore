@@ -18,7 +18,7 @@ htmlcov/
 # Note: poetry.lock should be committed for applications to ensure reproducible builds
 
 # IDE
-.vscode/
+# .vscode/ is committed for consistent workspace settings
 .idea/
 *.swp
 *.swo

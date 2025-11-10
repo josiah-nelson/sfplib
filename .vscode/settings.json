@@ -1,0 +1,32 @@
+{
+  "files.associations": {
+    "*.yaml": "yaml"
+  },
+  "files.exclude": {
+    "**/__pycache__": true,
+    "**/*.pyc": true,
+    "**/node_modules": true,
+    "**/.pytest_cache": true,
+    "**/.mypy_cache": true,
+    "**/.ruff_cache": true
+  },
+  "python.testing.pytestEnabled": true,
+  "python.testing.unittestEnabled": false,
+  "python.testing.pytestArgs": [
+    "backend/tests"
+  ],
+  "editor.rulers": [88, 120],
+  "yaml.schemas": {
+    "https://raw.githubusercontent.com/home-assistant/supervisor/main/supervisor/validate/schema/config.json": [
+      "sfplib/config.yaml"
+    ]
+  },
+  "yaml.customTags": [
+    "!secret scalar",
+    "!include scalar",
+    "!include_dir_list scalar",
+    "!include_dir_merge_list scalar",
+    "!include_dir_named scalar",
+    "!include_dir_merge_named scalar"
+  ]
+}
