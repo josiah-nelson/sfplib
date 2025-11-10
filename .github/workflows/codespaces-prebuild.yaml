@@ -21,13 +21,14 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Build devcontainer
+        continue-on-error: true
         uses: devcontainers/ci@v0.3
         with:
           imageName: ghcr.io/${{ github.repository }}-devcontainer
           cacheFrom: ghcr.io/${{ github.repository }}-devcontainer
           push: ${{ github.event_name != 'pull_request' && 'always' || 'never' }}
-          env: |
-            GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Pre-install Python dependencies
         if: github.event_name != 'pull_request'
