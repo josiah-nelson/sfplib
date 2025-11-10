@@ -1,5 +1,6 @@
 """API endpoints for community submissions."""
 
+import asyncio
 import base64
 import hashlib
 import json
@@ -24,6 +25,8 @@ async def submit_to_community(payload: SubmissionCreate) -> SubmissionResponse:
     Accept a community submission without GitHub sign-in.
 
     Submissions are stored in an inbox for maintainers to review and publish.
+    
+    Note: Uses asyncio.to_thread for file I/O to avoid blocking the event loop.
     """
     try:
         eeprom = base64.b64decode(payload.eeprom_data_base64)
@@ -33,15 +36,17 @@ async def submit_to_community(payload: SubmissionCreate) -> SubmissionResponse:
 
     sha = hashlib.sha256(eeprom).hexdigest()
     inbox_root = settings.submissions_dir
-    os.makedirs(inbox_root, exist_ok=True)
+    
+    # Run blocking I/O operations in thread pool
+    await asyncio.to_thread(os.makedirs, inbox_root, exist_ok=True)
 
     inbox_id = str(uuid.uuid4())
     target_dir = os.path.join(inbox_root, inbox_id)
-    os.makedirs(target_dir, exist_ok=True)
+    await asyncio.to_thread(os.makedirs, target_dir, exist_ok=True)
 
     # Write EEPROM binary
-    with open(os.path.join(target_dir, "eeprom.bin"), "wb") as f:
-        f.write(eeprom)
+    eeprom_path = os.path.join(target_dir, "eeprom.bin")
+    await asyncio.to_thread(_write_binary_file, eeprom_path, eeprom)
 
     # Write metadata JSON
     metadata = {
@@ -53,8 +58,8 @@ async def submit_to_community(payload: SubmissionCreate) -> SubmissionResponse:
         "notes": payload.notes,
         "created_at": datetime.utcnow().isoformat() + "Z",
     }
-    with open(os.path.join(target_dir, "metadata.json"), "w") as f:
-        json.dump(metadata, f, indent=2)
+    metadata_path = os.path.join(target_dir, "metadata.json")
+    await asyncio.to_thread(_write_json_file, metadata_path, metadata)
 
     logger.info("submission_queued", inbox_id=inbox_id, sha256=sha[:16] + "...")
 
@@ -64,3 +69,15 @@ async def submit_to_community(payload: SubmissionCreate) -> SubmissionResponse:
         inbox_id=inbox_id,
         sha256=sha,
     )
+
+
+def _write_binary_file(path: str, data: bytes) -> None:
+    """Helper to write binary file (runs in thread pool)."""
+    with open(path, "wb") as f:
+        f.write(data)
+
+
+def _write_json_file(path: str, data: dict) -> None:
+    """Helper to write JSON file (runs in thread pool)."""
+    with open(path, "w") as f:
+        json.dump(data, f, indent=2)

@@ -80,17 +80,21 @@ async def discover_services(request: DiscoverServicesRequest):
             explorer.log_handle.close()
 
         # Parse log to extract service info
-        import json
         services = []
         service_count = 0
 
-        with open(LOG_FILE, 'r') as f:
-            for line in f:
-                entry = json.loads(line)
-
-                if entry['event_type'] == 'service_discovered':
-                    services.append(entry['data'])
-                    service_count += 1
+        def _parse_log():
+            nonlocal service_count
+            result = []
+            with open(LOG_FILE, 'r') as f:
+                for line in f:
+                    entry = json.loads(line)
+                    if entry['event_type'] == 'service_discovered':
+                        result.append(entry['data'])
+                        service_count += 1
+            return result
+        
+        services = await asyncio.to_thread(_parse_log)
 
         return {
             "success": True,
@@ -122,19 +126,21 @@ async def test_writes(request: TestWritesRequest):
             explorer.log_handle.close()
 
         # Parse log to count successes/failures
-        import json
         successful = 0
         failed = 0
 
-        with open(LOG_FILE, 'r') as f:
-            for line in f:
-                entry = json.loads(line)
-
-                if entry['event_type'] == 'write_test':
-                    if entry['data'].get('success'):
-                        successful += 1
-                    else:
-                        failed += 1
+        def _parse_log():
+            nonlocal successful, failed
+            with open(LOG_FILE, 'r') as f:
+                for line in f:
+                    entry = json.loads(line)
+                    if entry['event_type'] == 'write_test':
+                        if entry['data'].get('success'):
+                            successful += 1
+                        else:
+                            failed += 1
+        
+        await asyncio.to_thread(_parse_log)
 
         return {
             "success": True,
@@ -165,16 +171,19 @@ async def monitor_notifications(request: MonitorNotificationsRequest):
             explorer.log_handle.close()
 
         # Parse log to extract notifications
-        import json
         notifications = []
 
-        with open(LOG_FILE, 'r') as f:
-            for line in f:
-                entry = json.loads(line)
-
-                if entry['event_type'] == 'monitoring_complete':
-                    notifications = entry['data']['notifications']
-                    break
+        def _parse_log():
+            result = []
+            with open(LOG_FILE, 'r') as f:
+                for line in f:
+                    entry = json.loads(line)
+                    if entry['event_type'] == 'monitoring_complete':
+                        result = entry['data']['notifications']
+                        break
+            return result
+        
+        notifications = await asyncio.to_thread(_parse_log)
 
         return {
             "success": True,

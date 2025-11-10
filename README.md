@@ -234,7 +234,7 @@ Comprehensive documentation is available in `/docs`:
 
 ### BLE Protocol
 
-SFPLiberate uses the **Web Bluetooth API** to communicate with the SFP Wizard over BLE.
+SFPLiberate uses **Home Assistant's native Bluetooth integration** to communicate with the SFP Wizard over BLE.
 
 **Discovered Protocol (firmware v1.0.10):**
 
@@ -256,21 +256,18 @@ SFPLiberate uses the **Web Bluetooth API** to communicate with the SFP Wizard ov
 
 ### Data Flow
 
-**Standalone Mode (Web Bluetooth):**
+**Home Assistant Add-on Architecture:**
 ```
-Browser ←--BLE--→ SFP Wizard
-   ↕ HTTP
-Next.js Server
-   ↕ Proxy
-FastAPI Backend
-   ↕
-SQLite Database
+Alpine.js UI ←--Ingress--→ FastAPI Backend ←--HA Bluetooth API--→ SFP Wizard
+                    ↕
+              SQLite Database
 ```
 
-**ESPHome Proxy Mode:**
-```
-Browser ←--WebSocket--→ FastAPI Backend ←--ESPHome API--→ ESPHome Proxy ←--BLE--→ SFP Wizard
-```
+**Key Components:**
+- **Alpine.js UI**: Lightweight frontend served via HA Ingress
+- **FastAPI Backend**: Async Python API with Bluetooth operations
+- **HA Bluetooth API**: Native Home Assistant Bluetooth integration
+- **SQLite Database**: Persistent storage in `/config/sfplib/`
 
 ---
 

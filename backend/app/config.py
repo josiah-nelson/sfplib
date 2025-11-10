@@ -18,8 +18,8 @@ class Settings(BaseSettings):
         extra="ignore",  # Ignore extra env vars from Docker
     )
 
-    # Database
-    database_url: str = "sqlite+aiosqlite:////app/data/sfp_library.db"
+    # Database - default to persistent HA config path
+    database_url: str = "sqlite+aiosqlite:////config/sfplib/sfp_library.db"
     database_echo: bool = False
 
     # API
@@ -30,8 +30,8 @@ class Settings(BaseSettings):
     # CORS
     cors_origins: list[str] = ["*"]
 
-    # Submissions
-    submissions_dir: str = "/app/data/submissions"
+    # Submissions - default to persistent HA config path
+    submissions_dir: str = "/config/sfplib/submissions"
 
     # Logging
     log_level: str = "INFO"

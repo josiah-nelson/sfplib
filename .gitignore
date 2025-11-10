@@ -15,7 +15,7 @@ htmlcov/
 .ruff_cache/
 
 # Poetry
-poetry.lock
+# Note: poetry.lock should be committed for applications to ensure reproducible builds
 
 # IDE
 .vscode/

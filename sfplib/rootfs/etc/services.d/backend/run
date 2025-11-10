@@ -99,7 +99,7 @@ if ! command -v python3 &> /dev/null; then
 fi
 
 # Test import of main app module (catches missing dependencies early)
-if ! python3 -c "import sys; sys.path.insert(0, '/app/backend'); import app.main" 2>/dev/null; then
+if ! python3 -c "import sys; sys.path.insert(0, '/app/backend'); import app.main"; then
   bashio::log.error "Failed to import backend app module!"
   bashio::log.error "This may indicate missing Python dependencies."
   bashio::log.info "Running diagnostic check..."
