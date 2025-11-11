@@ -118,7 +118,7 @@ app.add_middleware(
 # Include API v1 router
 app.include_router(api_router, prefix=settings.api_v1_prefix)
 
-# Health check endpoint (must be before static file mounting)
+# Health check endpoint
 @app.get("/health")
 async def health_check():
     """Root health check."""
@@ -134,10 +134,27 @@ async def legacy_get_modules():
     return RedirectResponse(url=f"{settings.api_v1_prefix}/modules")
 
 
-# Mount static Alpine.js UI files for Home Assistant add-on ingress
-# This must be last as it will serve index.html for root "/" and all unmatched paths
+# Serve static UI files for Home Assistant add-on ingress
 static_ui_path = Path("/usr/share/sfplib/ui")
 if static_ui_path.exists():
-    app.mount("/", StaticFiles(directory=str(static_ui_path), html=True), name="ui")
+    from fastapi.responses import FileResponse
+    
+    # Serve specific static files
+    @app.get("/app.js")
+    async def serve_app_js():
+        """Serve app.js."""
+        return FileResponse(static_ui_path / "app.js", media_type="application/javascript")
+    
+    @app.get("/logo.svg")
+    async def serve_logo():
+        """Serve logo.svg."""
+        return FileResponse(static_ui_path / "logo.svg", media_type="image/svg+xml")
+    
+    # Serve index.html at root (must be last)
+    @app.get("/")
+    async def serve_ui():
+        """Serve the UI index.html at root path."""
+        return FileResponse(static_ui_path / "index.html")
+    
     logger = structlog.get_logger()
     logger.info("static_ui_mounted", path=str(static_ui_path))
