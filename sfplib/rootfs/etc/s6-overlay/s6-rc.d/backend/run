@@ -44,10 +44,16 @@ ENABLE_DEBUG_BLE=$(bashio::config 'enable_debug_ble' 'false')
 BLE_TRACE_LOGGING=$(bashio::config 'ble_trace_logging' 'false')
 ENABLE_DEBUG_TOOLS=$(bashio::config 'enable_debug_tools' 'true')
 
-# Get device_name_patterns as JSON array using bashio/jq directly
-# The filter returns a compact JSON array string, falling back to default
-# if the option is missing or malformed in options.json.
-DEVICE_PATTERNS=$(bashio::config 'device_name_patterns | tojson' '["SFP","Wizard"]')
+# Get device_name_patterns as JSON array robustly
+# Some bashio versions print arrays as newline-separated values, not JSON.
+# Convert any newline-separated list to a JSON array using jq -R (raw input).
+DEVICE_PATTERNS_RAW=$(bashio::config 'device_name_patterns' || true)
+if [[ -n "${DEVICE_PATTERNS_RAW}" ]]; then
+  DEVICE_PATTERNS=$(printf "%s\n" "${DEVICE_PATTERNS_RAW}" | jq -Rsc 'split("\n") | map(select(length>0))')
+else
+  DEVICE_PATTERNS='["SFP","Wizard"]'
+fi
+bashio::log.info "  Device name patterns: ${DEVICE_PATTERNS}"
 
 # Export environment variables for backend
 export PYTHONPATH=/app/backend
