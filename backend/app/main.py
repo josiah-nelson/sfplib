@@ -118,12 +118,11 @@ app.add_middleware(
 # Include API v1 router
 app.include_router(api_router, prefix=settings.api_v1_prefix)
 
-# Mount static Alpine.js UI files for Home Assistant add-on ingress
-static_ui_path = Path("/usr/share/sfplib/ui")
-if static_ui_path.exists():
-    app.mount("/ui", StaticFiles(directory=str(static_ui_path), html=True), name="ui")
-    logger = structlog.get_logger()
-    logger.info("static_ui_mounted", path=str(static_ui_path))
+# Health check endpoint (must be before static file mounting)
+@app.get("/health")
+async def health_check():
+    """Root health check."""
+    return {"status": "healthy", "version": settings.version}
 
 
 # Backward compatibility: Keep legacy /api routes
@@ -135,23 +134,10 @@ async def legacy_get_modules():
     return RedirectResponse(url=f"{settings.api_v1_prefix}/modules")
 
 
-@app.get("/health")
-async def health_check():
-    """Root health check."""
-    return {"status": "healthy", "version": settings.version}
-
-
-@app.get("/")
-async def root():
-    """Root endpoint.
-
-    If static UI is available, redirect to it; otherwise return basic info.
-    """
-    static_ui_path = Path("/usr/share/sfplib/ui")
-    if static_ui_path.exists():
-        return RedirectResponse(url="/ui")
-    return {
-        "name": settings.project_name,
-        "version": settings.version,
-        "docs_url": f"{settings.api_v1_prefix}/docs",
-    }
+# Mount static Alpine.js UI files for Home Assistant add-on ingress
+# This must be last as it will serve index.html for root "/" and all unmatched paths
+static_ui_path = Path("/usr/share/sfplib/ui")
+if static_ui_path.exists():
+    app.mount("/", StaticFiles(directory=str(static_ui_path), html=True), name="ui")
+    logger = structlog.get_logger()
+    logger.info("static_ui_mounted", path=str(static_ui_path))
