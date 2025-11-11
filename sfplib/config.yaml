@@ -13,8 +13,7 @@ arch:
 
 # s6-overlay v3 requires init: false
 init: false
-# Custom AppArmor profile included in apparmor.txt
-apparmor: sfpliberate
+apparmor: false
 startup: services
 boot: auto
 timeout: 120
