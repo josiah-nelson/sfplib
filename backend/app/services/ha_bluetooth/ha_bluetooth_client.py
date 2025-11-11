@@ -57,10 +57,13 @@ class HomeAssistantBluetoothClient:
         self._ws_task: asyncio.Task | None = None
         self._connected = False
 
+        token_len = len(self.supervisor_token or "")
         logger.info(
             "ha_bluetooth_client_initialized",
             api_url=self.ha_api_url,
-            patterns=self.device_patterns
+            patterns=self.device_patterns,
+            token_present=bool(self.supervisor_token),
+            token_length=token_len,
         )
 
         # Log session info to tracer

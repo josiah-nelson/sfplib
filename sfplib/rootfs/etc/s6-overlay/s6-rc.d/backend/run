@@ -111,6 +111,13 @@ if [[ "${DATABASE_BACKUP_ENABLED}" == "true" ]]; then
   bashio::log.info "  Backup directory: ${DATABASE_BACKUP_PATH}"
 fi
 
+# Log masked Supervisor token presence (for diagnostics only)
+if [[ -n "${SUPERVISOR_TOKEN}" ]]; then
+  bashio::log.info "  Supervisor token: present (length: ${#SUPERVISOR_TOKEN})"
+else
+  bashio::log.warning "  Supervisor token: missing"
+fi
+
 # Validate Python installation and dependencies
 bashio::log.info "Validating Python environment..."
 if ! command -v python3 &> /dev/null; then
