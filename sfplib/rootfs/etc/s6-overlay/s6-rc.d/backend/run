@@ -44,8 +44,10 @@ ENABLE_DEBUG_BLE=$(bashio::config 'enable_debug_ble' 'false')
 BLE_TRACE_LOGGING=$(bashio::config 'ble_trace_logging' 'false')
 ENABLE_DEBUG_TOOLS=$(bashio::config 'enable_debug_tools' 'true')
 
-# Get device_name_patterns as JSON array
-DEVICE_PATTERNS=$(bashio::config 'device_name_patterns' | jq -c '.')
+# Get device_name_patterns as JSON array using bashio/jq directly
+# The filter returns a compact JSON array string, falling back to default
+# if the option is missing or malformed in options.json.
+DEVICE_PATTERNS=$(bashio::config 'device_name_patterns | tojson' '["SFP","Wizard"]')
 
 # Export environment variables for backend
 export PYTHONPATH=/app/backend
