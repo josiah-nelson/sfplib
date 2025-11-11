@@ -11,17 +11,24 @@ arch:
   - armhf
   - armv7
 
-apparmor: false
+# s6-overlay v3 requires init: false
 init: false
+# Custom AppArmor profile included in apparmor.txt
+apparmor: sfpliberate
 startup: services
 boot: auto
 timeout: 120
+
+# Health monitoring
 watchdog: "http://[HOST]:[PORT:80]/health"
+
+# Ingress configuration for web UI
 ingress: true
 ingress_port: 80
 ingress_entry: /
 panel_icon: mdi:ethernet
 panel_title: SFPLiberate
+panel_admin: false
 webui: "http://[HOST]:[PORT:80]/"
 
 # Bluetooth access required
