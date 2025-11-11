@@ -1,8 +1,8 @@
 """
-Home Assistant Bluetooth API
+Bluetooth API using direct Bleak scanner
 
-Simplified BLE operations using HA's native Bluetooth integration.
-No ESPHome proxy needed - uses HA's built-in Bluetooth.
+Uses Bleak's BleakScanner to directly scan for BLE devices via host Bluetooth adapter.
+Filters by SFP Wizard service UUID: 8e60f02e-f699-4865-b83f-f40501752184
 """
 
 import base64
@@ -11,25 +11,25 @@ import structlog
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from typing import Any, List
+from bleak import BleakScanner
 
-from app.services.ha_bluetooth import HomeAssistantBluetoothClient
 from app.services.ble_operations import BLEOperationsService
 from app.services.sfp_parser import parse_sfp_data
 from app.repositories.module_repository import ModuleRepository
 from app.core.database import get_db
+from app.config import get_settings
 
 logger = structlog.get_logger(__name__)
 router = APIRouter(prefix="/bluetooth", tags=["bluetooth"])
+settings = get_settings()
 
 
 # ====================================================================
-# Dependencies
+# Constants
 # ====================================================================
 
-def get_ha_client() -> HomeAssistantBluetoothClient:
-    """Get HA Bluetooth client from ha_bluetooth module to avoid circular import."""
-    from app.api.v1.ha_bluetooth import get_ha_bluetooth_client
-    return get_ha_bluetooth_client()
+# SFP Wizard service UUID (firmware v1.0.10)
+SFP_SERVICE_UUID = "8e60f02e-f699-4865-b83f-f40501752184"
 
 
 # ====================================================================
@@ -56,35 +56,51 @@ class WriteRequest(BaseModel):
 # ====================================================================
 
 @router.get("/discover")
-async def discover_devices(
-    client: HomeAssistantBluetoothClient = Depends(get_ha_client)
-) -> DiscoverResponse:
+async def discover_devices() -> DiscoverResponse:
     """
-    Discover SFP Wizard devices via HA Bluetooth.
+    Discover SFP Wizard devices via direct BLE scanning.
 
-    Queries Home Assistant's Bluetooth integration for devices matching
-    configured patterns (e.g., "SFP", "Wizard").
+    Uses Bleak's BleakScanner to scan for devices advertising the SFP Wizard
+    service UUID: 8e60f02e-f699-4865-b83f-f40501752184
 
     Returns:
         List of discovered devices with MAC, name, and RSSI
     """
     try:
-        ha_devices = await client.get_bluetooth_devices()
+        logger.info("ble_scan_start", service_uuid=SFP_SERVICE_UUID)
 
-        devices = [
-            {
-                "address": device.mac,
-                "name": device.name,
-                "rssi": device.rssi,
-                "source": device.source,
-                "last_seen": device.last_seen
-            }
-            for device in ha_devices
-        ]
+        # Scan for 10 seconds
+        discovered_devices = await BleakScanner.discover(
+            timeout=10.0,
+            return_adv=True  # Return advertisement data
+        )
 
+        # Filter by service UUID
+        devices = []
+        for address, (device, advertisement_data) in discovered_devices.items():
+            # Check if device advertises our service UUID
+            service_uuids = advertisement_data.service_uuids or []
+
+            if SFP_SERVICE_UUID.lower() in [str(uuid).lower() for uuid in service_uuids]:
+                devices.append({
+                    "address": address,
+                    "name": device.name or address,  # Fallback to MAC if no name
+                    "rssi": advertisement_data.rssi,
+                    "source": "direct_scan",
+                    "last_seen": None
+                })
+                logger.info(
+                    "sfp_wizard_discovered",
+                    address=address,
+                    name=device.name,
+                    rssi=advertisement_data.rssi
+                )
+
+        logger.info("ble_scan_complete", devices_found=len(devices))
         return DiscoverResponse(devices=devices)
 
     except Exception as e:
+        logger.error("ble_scan_failed", error=str(e), exc_info=True)
         raise HTTPException(
             status_code=500,
             detail=f"Failed to discover devices: {str(e)}"
