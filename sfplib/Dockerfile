@@ -53,6 +53,9 @@ RUN apk add --no-cache \
 # Copy backend app code
 COPY --from=backend-build /backend/app /app/backend/app
 
+# Copy BLE exploration tools (for debug endpoints)
+COPY tools /app/tools
+
 # Install Python dependencies in a virtualenv (PEP 668 compliant)
 COPY --from=backend-build /backend/requirements.txt /tmp/requirements.txt
 RUN python3 -m venv /opt/venv \
