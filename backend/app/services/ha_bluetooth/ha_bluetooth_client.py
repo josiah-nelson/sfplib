@@ -325,16 +325,29 @@ class HomeAssistantBluetoothClient:
                 # Connect to WebSocket
                 self._ws = await self._session.ws_connect(self.ha_ws_url)
 
-                # Authenticate
-                await self._ws.send_json({
-                    "type": "auth",
-                    "access_token": self.supervisor_token
-                })
-
-                # Wait for auth response
-                auth_response = await self._ws.receive_json()
-                if auth_response.get("type") != "auth_ok":
-                    logger.error("ha_bluetooth_websocket_auth_failed", response=auth_response)
+                # HA WS auth handshake: server sends auth_required first, then client sends auth
+                # Be tolerant to message ordering and read until auth_ok or auth_invalid
+                auth_ok = False
+                # Read up to 3 initial messages to complete handshake
+                for _ in range(3):
+                    msg = await self._ws.receive_json()
+                    mtype = msg.get("type")
+                    if mtype == "auth_required":
+                        # Send credentials
+                        await self._ws.send_json({
+                            "type": "auth",
+                            "access_token": self.supervisor_token,
+                        })
+                        continue
+                    if mtype == "auth_ok":
+                        auth_ok = True
+                        break
+                    if mtype == "auth_invalid":
+                        logger.error("ha_bluetooth_websocket_auth_failed", response=msg)
+                        return
+                    # Unknown pre-auth message; continue loop
+                if not auth_ok:
+                    logger.error("ha_bluetooth_websocket_auth_failed", response={"type": "no_auth_ok"})
                     return
 
                 logger.info("ha_bluetooth_websocket_authenticated")
