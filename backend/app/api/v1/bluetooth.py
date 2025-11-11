@@ -29,7 +29,7 @@ settings = get_settings()
 # ====================================================================
 
 # SFP Wizard service UUID (firmware v1.0.10)
-SFP_SERVICE_UUID = "8e60f02e-f699-4865-b83f-f40501752184"
+SFP_SERVICE_UUID = settings.sfp_service_uuid
 
 
 # ====================================================================
