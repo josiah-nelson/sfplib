@@ -135,26 +135,39 @@ async def legacy_get_modules():
 
 
 # Serve static UI files for Home Assistant add-on ingress
+from fastapi.responses import FileResponse
+
 static_ui_path = Path("/usr/share/sfplib/ui")
+
+@app.get("/app.js")
+async def serve_app_js():
+    """Serve app.js."""
+    if not static_ui_path.exists():
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="UI not available")
+    return FileResponse(static_ui_path / "app.js", media_type="application/javascript")
+
+@app.get("/logo.svg")
+async def serve_logo():
+    """Serve logo.svg."""
+    if not static_ui_path.exists():
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="UI not available")
+    return FileResponse(static_ui_path / "logo.svg", media_type="image/svg+xml")
+
+@app.get("/")
+async def serve_ui():
+    """Serve the UI index.html at root path."""
+    if not static_ui_path.exists():
+        return {
+            "name": settings.project_name,
+            "version": settings.version,
+            "docs_url": f"{settings.api_v1_prefix}/docs",
+        }
+    return FileResponse(static_ui_path / "index.html")
+
+logger = structlog.get_logger()
 if static_ui_path.exists():
-    from fastapi.responses import FileResponse
-    
-    # Serve specific static files
-    @app.get("/app.js")
-    async def serve_app_js():
-        """Serve app.js."""
-        return FileResponse(static_ui_path / "app.js", media_type="application/javascript")
-    
-    @app.get("/logo.svg")
-    async def serve_logo():
-        """Serve logo.svg."""
-        return FileResponse(static_ui_path / "logo.svg", media_type="image/svg+xml")
-    
-    # Serve index.html at root (must be last)
-    @app.get("/")
-    async def serve_ui():
-        """Serve the UI index.html at root path."""
-        return FileResponse(static_ui_path / "index.html")
-    
-    logger = structlog.get_logger()
-    logger.info("static_ui_mounted", path=str(static_ui_path))
+    logger.info("static_ui_available", path=str(static_ui_path))
+else:
+    logger.warning("static_ui_not_found", path=str(static_ui_path))
