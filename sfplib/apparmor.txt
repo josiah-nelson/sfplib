@@ -12,7 +12,10 @@ profile sfpliberate flags=(attach_disconnected,mediate_deleted) {
   capability setuid,
 
   # S6-Overlay v3 support
-  /init ix,
+  # Allow reading + executing /init because some runtimes invoke it via a shell
+  # (which reads the file), otherwise AppArmor denies with EACCES causing
+  # '/bin/sh: can't open /init: Permission denied'.
+  /init rix,
   /bin/** ix,
   /usr/bin/** ix,
   /usr/lib/bashio/** ix,

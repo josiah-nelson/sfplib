@@ -1,5 +1,5 @@
 name: "SFPLiberate"
-version: "0.1.0"
+version: "0.1.1"
 slug: "sfplib"
 description: "Bluetooth companion for Ubiquiti SFP Wizard - capture, clone, and manage SFP module EEPROM profiles"
 url: "https://github.com/josiah-nelson/SFPLiberate"
