@@ -52,7 +52,7 @@ function sfpApp() {
 
         async loadConfig() {
             try {
-                const response = await fetch('/api/v1/config');
+                const response = await fetch('api/v1/config');
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 
                 this.config = await response.json();
@@ -104,7 +104,7 @@ function sfpApp() {
         async loadModules() {
             this.loading = true;
             try {
-                const response = await fetch('/api/v1/modules');
+                const response = await fetch('api/v1/modules');
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
                 this.modules = await response.json();
@@ -123,7 +123,7 @@ function sfpApp() {
             }
 
             try {
-                const response = await fetch(`/api/v1/modules/${moduleId}`, {
+                const response = await fetch(`api/v1/modules/${moduleId}`, {
                     method: 'DELETE'
                 });
 
@@ -144,7 +144,7 @@ function sfpApp() {
             this.showStatus('Discovering devices...', 'info');
 
             try {
-                const response = await fetch('/api/v1/bluetooth/discover');
+                const response = await fetch('api/v1/bluetooth/discover');
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
                 const data = await response.json();
@@ -180,7 +180,7 @@ function sfpApp() {
             this.showStatus('Reading EEPROM from device...', 'info');
 
             try {
-                const response = await fetch('/api/v1/bluetooth/read', {
+                const response = await fetch('api/v1/bluetooth/read', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -225,7 +225,7 @@ function sfpApp() {
             this.showStatus('Writing EEPROM to device...', 'info');
 
             try {
-                const response = await fetch('/api/v1/bluetooth/write', {
+                const response = await fetch('api/v1/bluetooth/write', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -269,7 +269,7 @@ function sfpApp() {
             this.showStatus('Discovering BLE services...', 'info');
 
             try {
-                const response = await fetch('/api/v1/debug/discover-services', {
+                const response = await fetch('api/v1/debug/discover-services', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -312,7 +312,7 @@ function sfpApp() {
             this.showStatus('Testing write patterns (this may take 2-3 minutes)...', 'info');
 
             try {
-                const response = await fetch('/api/v1/debug/test-writes', {
+                const response = await fetch('api/v1/debug/test-writes', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -359,7 +359,7 @@ function sfpApp() {
             }, 1000);
 
             try {
-                const response = await fetch('/api/v1/debug/monitor-notifications', {
+                const response = await fetch('api/v1/debug/monitor-notifications', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -400,7 +400,7 @@ function sfpApp() {
             this.showStatus('Downloading logs...', 'info');
 
             try {
-                const response = await fetch('/api/v1/debug/export-logs');
+                const response = await fetch('api/v1/debug/export-logs');
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
                 const blob = await response.blob();
