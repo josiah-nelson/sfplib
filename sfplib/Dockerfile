@@ -23,7 +23,8 @@ RUN pip install --no-cache-dir poetry==1.8.5
 COPY backend/pyproject.toml backend/poetry.lock ./
 
 # Export dependencies to requirements.txt
-RUN poetry export -f requirements.txt --output requirements.txt --without-hashes --without dev
+RUN poetry lock --no-update \
+    && poetry export -f requirements.txt --output requirements.txt --without-hashes --without dev
 
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
@@ -57,7 +58,7 @@ COPY --from=backend-build /backend/requirements.txt /tmp/requirements.txt
 RUN python3 -m venv /opt/venv \
     && /opt/venv/bin/pip install --no-cache-dir --upgrade pip \
     && /opt/venv/bin/pip install --no-cache-dir -r /tmp/requirements.txt \
-    && /opt/venv/bin/pip install --no-cache-dir 'aiohttp>=3.10,<4'
+    && /opt/venv/bin/pip install --no-cache-dir 'aiohttp>=3.10,<4' 'bleak>=1.1,<2'
 
 # Prefer the venv Python on PATH for runtime
 ENV PATH="/opt/venv/bin:${PATH}"
