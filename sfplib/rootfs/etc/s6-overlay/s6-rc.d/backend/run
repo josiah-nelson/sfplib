@@ -44,14 +44,26 @@ ENABLE_DEBUG_BLE=$(bashio::config 'enable_debug_ble' 'false')
 BLE_TRACE_LOGGING=$(bashio::config 'ble_trace_logging' 'false')
 ENABLE_DEBUG_TOOLS=$(bashio::config 'enable_debug_tools' 'true')
 
-# Get device_name_patterns as JSON array robustly
-# Some bashio versions print arrays as newline-separated values, not JSON.
-# Convert any newline-separated list to a JSON array using jq -R (raw input).
-DEVICE_PATTERNS_RAW=$(bashio::config 'device_name_patterns' || true)
-if [[ -n "${DEVICE_PATTERNS_RAW}" ]]; then
-  DEVICE_PATTERNS=$(printf "%s\n" "${DEVICE_PATTERNS_RAW}" | jq -Rsc 'split("\n") | map(select(length>0))')
-else
+# Get device_name_patterns as JSON array without relying on jq JSON parsing
+# Build JSON manually from newline-separated items returned by bashio
+DEVICE_PATTERNS_LIST=$(bashio::config 'device_name_patterns' || true)
+DEVICE_PATTERNS_ITEMS=""
+if [[ -n "${DEVICE_PATTERNS_LIST}" ]]; then
+  while IFS= read -r _item; do
+    [[ -z "${_item}" ]] && continue
+    # escape quotes in item
+    _esc_item=${_item//\"/\\\"}
+    if [[ -n "${DEVICE_PATTERNS_ITEMS}" ]]; then
+      DEVICE_PATTERNS_ITEMS+=" , \"${_esc_item}\""
+    else
+      DEVICE_PATTERNS_ITEMS="\"${_esc_item}\""
+    fi
+  done <<< "${DEVICE_PATTERNS_LIST}"
+fi
+if [[ -z "${DEVICE_PATTERNS_ITEMS}" ]]; then
   DEVICE_PATTERNS='["SFP","Wizard"]'
+else
+  DEVICE_PATTERNS="[${DEVICE_PATTERNS_ITEMS}]"
 fi
 bashio::log.info "  Device name patterns: ${DEVICE_PATTERNS}"
 

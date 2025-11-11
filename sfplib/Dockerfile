@@ -47,8 +47,7 @@ RUN apk add --no-cache \
     bluez \
     bluez-deprecated \
     curl \
-    jq \
-    bashio
+    jq
 
 # Copy backend from build stage
 COPY --from=backend-build /backend/app /app/backend/app
