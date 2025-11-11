@@ -47,7 +47,8 @@ RUN apk add --no-cache \
     bluez \
     bluez-deprecated \
     curl \
-    jq
+    jq \
+    bashio
 
 # Copy backend from build stage
 COPY --from=backend-build /backend/app /app/backend/app
@@ -56,6 +57,13 @@ COPY --from=backend-build /usr/local/lib/python3.12/site-packages /usr/lib/pytho
 # Copy add-on files (build context is repo root)
 # Static Alpine.js UI included in rootfs/usr/share/sfplib/ui/
 COPY sfplib/rootfs /
+
+# Ensure sane permissions after copying rootfs (prevent accidental no-exec/closed perms)
+# Some repos may have stricter directory modes checked into VCS (e.g., 0700 on usr),
+# which can break Alpine's merged-/usr layout or s6 overlay startup on HA base images.
+RUN chmod 0755 /usr \
+    && chmod -R a+rX /etc/s6-overlay \
+    && chmod -R a+rX /usr/share/sfplib
 
 # Create necessary directories and set permissions
 # Note: /config and /share are mounted by HA at runtime
@@ -76,6 +84,10 @@ ENV ADDON_VERSION=${BUILD_VERSION}
 
 # Enable s6-overlay debug logging
 ENV S6_VERBOSITY=3
+
+# Explicitly set entrypoint to s6-overlay init to avoid shell form execution
+# on some supervisor/docker combinations
+ENTRYPOINT ["/init"]
 
 # Set container metadata
 LABEL \
