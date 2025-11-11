@@ -19,10 +19,10 @@ timeout: 120
 watchdog: "http://[HOST]:[PORT:80]/health"
 ingress: true
 ingress_port: 80
-ingress_entry: /ui
+ingress_entry: /
 panel_icon: mdi:ethernet
 panel_title: SFPLiberate
-webui: "http://[HOST]:[PORT:80]/ui"
+webui: "http://[HOST]:[PORT:80]/"
 
 # Bluetooth access required
 host_dbus: true
