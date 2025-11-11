@@ -68,7 +68,7 @@ fi
 bashio::log.info "  Device name patterns: ${DEVICE_PATTERNS}"
 
 # Export environment variables for backend
-export PYTHONPATH=/app/backend
+export PYTHONPATH=/app/backend:/app/tools
 export LOG_LEVEL
 export HA_ADDON_MODE=true
 export DEPLOYMENT_MODE=homeassistant
