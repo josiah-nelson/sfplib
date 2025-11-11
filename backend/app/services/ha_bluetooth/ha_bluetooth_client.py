@@ -210,7 +210,16 @@ class HomeAssistantBluetoothClient:
         return self._connected
 
     async def _discover_devices(self) -> None:
-        """Query HA states API for Bluetooth devices."""
+        """
+        Query HA for Bluetooth devices.
+
+        Note: This currently looks for Bluetooth entities (device_tracker, etc.)
+        which only exist for paired/integrated devices. Raw BLE advertisements
+        visible in the Advertisement Monitor are not exposed via this API.
+
+        For now, users should manually add their SFP Wizard device using the
+        Bluetooth integration before using this addon.
+        """
         if not self._session:
             logger.warning("ha_bluetooth_discover_no_session")
             return
@@ -242,8 +251,14 @@ class HomeAssistantBluetoothClient:
 
                 name = attrs.get("friendly_name", "")
 
-                # Pattern matching (case-insensitive)
-                if not any(pattern in name.lower() for pattern in self.device_patterns):
+                # Pattern matching (case-insensitive) OR match by service UUID if present
+                service_uuids = attrs.get("service_uuids", [])
+                sfp_service_uuid = "8e60f02e-f699-4865-b83f-f40501752184"
+
+                matches_pattern = any(pattern in name.lower() for pattern in self.device_patterns)
+                matches_uuid = sfp_service_uuid.lower() in [str(u).lower() for u in service_uuids]
+
+                if not (matches_pattern or matches_uuid):
                     continue
 
                 # Extract MAC from various attribute locations
@@ -254,7 +269,7 @@ class HomeAssistantBluetoothClient:
                 # Create device object
                 device = HABluetoothDevice(
                     mac=mac,
-                    name=name,
+                    name=name or mac,  # Fallback to MAC if no name
                     rssi=attrs.get("rssi", -100),
                     source=attrs.get("source", "hass_bluetooth"),
                     last_seen=state.get("last_changed"),
@@ -264,19 +279,29 @@ class HomeAssistantBluetoothClient:
                 # Log discovery to tracer
                 tracer.log_device_discovered(
                     mac=mac,
-                    name=name,
+                    name=name or mac,
                     rssi=attrs.get("rssi", -100),
                     advertisement_data={
                         "entity_id": entity_id,
                         "source": attrs.get("source", "hass_bluetooth"),
                         "last_seen": state.get("last_changed"),
+                        "service_uuids": service_uuids,
                         "attributes": attrs,
                     }
                 )
 
             # Update cache
             self._discovered_devices = discovered
-            logger.debug("ha_bluetooth_devices_discovered", count=len(discovered))
+            logger.info("ha_bluetooth_devices_discovered", count=len(discovered))
+
+            if len(discovered) == 0:
+                logger.warning(
+                    "no_bluetooth_devices_found",
+                    message="No Bluetooth devices found. Raw BLE advertisements are not "
+                    "accessible via HA API. Please add your SFP Wizard device manually in "
+                    "Settings → Devices & Services → Bluetooth → Add Device, then use its MAC "
+                    f"address: {self.device_patterns}"
+                )
 
         except Exception as e:
             logger.error("ha_bluetooth_discovery_error", error=str(e), exc_info=True)
