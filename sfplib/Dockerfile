@@ -56,7 +56,8 @@ COPY --from=backend-build /backend/app /app/backend/app
 COPY --from=backend-build /backend/requirements.txt /tmp/requirements.txt
 RUN python3 -m venv /opt/venv \
     && /opt/venv/bin/pip install --no-cache-dir --upgrade pip \
-    && /opt/venv/bin/pip install --no-cache-dir -r /tmp/requirements.txt
+    && /opt/venv/bin/pip install --no-cache-dir -r /tmp/requirements.txt \
+    && /opt/venv/bin/pip install --no-cache-dir 'aiohttp>=3.10,<4'
 
 # Prefer the venv Python on PATH for runtime
 ENV PATH="/opt/venv/bin:${PATH}"
