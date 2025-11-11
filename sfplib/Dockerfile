@@ -49,9 +49,14 @@ RUN apk add --no-cache \
     curl \
     jq
 
-# Copy backend from build stage
+# Copy backend app code
 COPY --from=backend-build /backend/app /app/backend/app
-COPY --from=backend-build /usr/local/lib/python3.12/site-packages /usr/lib/python3.12/site-packages
+
+# Install Python dependencies in final image (Alpine/musl) to ensure
+# correct wheels/ABI for the target architecture
+COPY --from=backend-build /backend/requirements.txt /tmp/requirements.txt
+RUN python3 -m pip install --no-cache-dir --upgrade pip \
+    && pip3 install --no-cache-dir -r /tmp/requirements.txt
 
 # Copy add-on files (build context is repo root)
 # Static Alpine.js UI included in rootfs/usr/share/sfplib/ui/
