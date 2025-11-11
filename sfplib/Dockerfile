@@ -52,11 +52,14 @@ RUN apk add --no-cache \
 # Copy backend app code
 COPY --from=backend-build /backend/app /app/backend/app
 
-# Install Python dependencies in final image (Alpine/musl) to ensure
-# correct wheels/ABI for the target architecture
+# Install Python dependencies in a virtualenv (PEP 668 compliant)
 COPY --from=backend-build /backend/requirements.txt /tmp/requirements.txt
-RUN python3 -m pip install --no-cache-dir --upgrade pip \
-    && pip3 install --no-cache-dir -r /tmp/requirements.txt
+RUN python3 -m venv /opt/venv \
+    && /opt/venv/bin/pip install --no-cache-dir --upgrade pip \
+    && /opt/venv/bin/pip install --no-cache-dir -r /tmp/requirements.txt
+
+# Prefer the venv Python on PATH for runtime
+ENV PATH="/opt/venv/bin:${PATH}"
 
 # Copy add-on files (build context is repo root)
 # Static Alpine.js UI included in rootfs/usr/share/sfplib/ui/
