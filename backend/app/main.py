@@ -5,6 +5,7 @@ from pathlib import Path
 
 import structlog
 from fastapi import FastAPI
+from fastapi.responses import RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
@@ -142,7 +143,13 @@ async def health_check():
 
 @app.get("/")
 async def root():
-    """Root endpoint."""
+    """Root endpoint.
+
+    If static UI is available, redirect to it; otherwise return basic info.
+    """
+    static_ui_path = Path("/usr/share/sfplib/ui")
+    if static_ui_path.exists():
+        return RedirectResponse(url="/ui")
     return {
         "name": settings.project_name,
         "version": settings.version,
