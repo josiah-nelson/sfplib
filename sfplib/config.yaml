@@ -11,6 +11,7 @@ arch:
   - armhf
   - armv7
 
+apparmor: false
 init: false
 startup: services
 boot: auto
