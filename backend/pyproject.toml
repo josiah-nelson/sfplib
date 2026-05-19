@@ -17,7 +17,7 @@ alembic = "^1.17.1"
 structlog = "^25.5.0"
 httpx = "^0.28.1"
 aiohttp = "^3.10.0"
-bleak = "^1.1.1"
+bleak = ">=1.1.1,<4.0.0"
 websockets = "^15.0.1"
 
 [tool.poetry.group.dev.dependencies]
